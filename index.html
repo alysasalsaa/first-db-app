@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Your First DB App</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      background: #0a0f1e;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      color: #f8fafc;
+      padding: 32px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+
+    /* ── Header ── */
+    .header { text-align: center; }
+
+    .badge {
+      display: inline-block;
+      background: #7c3aed;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 3px 12px;
+      border-radius: 999px;
+      margin-bottom: 10px;
+    }
+
+    h1 { font-size: 1.9rem; font-weight: 700; letter-spacing: 0.5px; }
+
+    .subtitle { font-size: 0.85rem; color: #64748b; margin-top: 4px; }
+
+    /* ── Layout ── */
+    .layout {
+      width: 100%;
+      max-width: 860px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* ── Panel base ── */
+    .panel {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 16px;
+      padding: 18px 20px;
+    }
+
+    .panel-title {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #7c3aed;
+      margin-bottom: 12px;
+    }
+
+    /* ── Control panel ── */
+    .control-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      flex: 1;
+      min-width: 100px;
+      padding: 11px 16px;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: 0.4px;
+      transition: transform 0.15s, opacity 0.2s, box-shadow 0.2s;
+    }
+
+    .btn:hover:not(:disabled)  { transform: scale(1.03); }
+    .btn:active:not(:disabled) { transform: scale(0.97); }
+
+    .btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .btn-load {
+      background: linear-gradient(135deg, #22c55e, #15803d);
+      color: #fff;
+      box-shadow: 0 0 14px rgba(34,197,94,0.3);
+    }
+
+    .btn-query {
+      background: linear-gradient(135deg, #7c3aed, #4f46e5);
+      color: #fff;
+      box-shadow: 0 0 14px rgba(124,58,237,0.3);
+    }
+
+    .btn-clear {
+      background: linear-gradient(135deg, #ef4444, #b91c1c);
+      color: #fff;
+      box-shadow: 0 0 14px rgba(239,68,68,0.3);
+    }
+
+    /* ── Notification panel ── */
+    .notif-box {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 0.85rem;
+      color: #38bdf8;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .notif-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #38bdf8;
+      flex-shrink: 0;
+    }
+
+    /* ── Log panel ── */
+    .log-box {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      padding: 10px 14px;
+      height: 140px;
+      overflow-y: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 0.75rem;
+      color: #64748b;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .log-line { line-height: 1.5; }
+    .log-line.info    { color: #64748b; }
+    .log-line.success { color: #22c55e; }
+    .log-line.warn    { color: #f59e0b; }
+    .log-line.error   { color: #ef4444; }
+    .log-line.query   { color: #7c3aed; }
+
+    /* ── Results table ── */
+    .results-wrap {
+      max-height: 260px;
+      overflow-y: auto;
+      border-radius: 10px;
+      border: 1px solid #1e293b;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+    }
+
+    thead {
+      background: #0f172a;
+      position: sticky;
+      top: 0;
+    }
+
+    thead th {
+      padding: 10px 14px;
+      text-align: left;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #7c3aed;
+      border-bottom: 1px solid #334155;
+    }
+
+    tbody tr {
+      border-bottom: 1px solid #1e293b;
+      transition: background 0.15s;
+    }
+
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: #1e293b; }
+
+    tbody td {
+      padding: 10px 14px;
+      color: #cbd5e1;
+    }
+
+    .empty-row td {
+      text-align: center;
+      color: #334155;
+      padding: 20px;
+      font-style: italic;
+    }
+
+    /* scrollbars */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+
+    /* ── Retrospection section ── */
+    .retro {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 16px;
+      padding: 18px 20px;
+    }
+
+    .retro-title {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #f59e0b;
+      margin-bottom: 14px;
+    }
+
+    .retro-q {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #e2e8f0;
+      margin-bottom: 5px;
+    }
+
+    .retro-a {
+      font-size: 0.78rem;
+      color: #94a3b8;
+      line-height: 1.6;
+      margin-bottom: 14px;
+      padding-left: 10px;
+      border-left: 2px solid #334155;
+    }
+
+    .retro-a:last-child { margin-bottom: 0; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <span class="badge">Tier 1 — Beginner</span>
+    <h1>Your First DB App</h1>
+    <p class="subtitle">IndexedDB customer database explorer</p>
+  </div>
+
+  <div class="layout">
+
+    <!-- Control Panel -->
+    <div class="panel">
+      <div class="panel-title">Control Panel</div>
+      <div class="control-row">
+        <button class="btn btn-load"  id="btnLoad"  onclick="handleLoad()">⬆ Load DB</button>
+        <button class="btn btn-query" id="btnQuery" onclick="handleQuery()">🔍 Query DB</button>
+        <button class="btn btn-clear" id="btnClear" onclick="handleClear()" disabled>🗑 Clear DB</button>
+      </div>
+    </div>
+
+    <!-- Notification Panel -->
+    <div class="panel">
+      <div class="panel-title">Notification</div>
+      <div class="notif-box" id="notifBox">
+        <div class="notif-dot" id="notifDot"></div>
+        <span id="notifText">Ready. Click Load DB to populate the database.</span>
+      </div>
+    </div>
+
+    <!-- Log Panel -->
+    <div class="panel">
+      <div class="panel-title">Execution Log</div>
+      <div class="log-box" id="logBox"></div>
+    </div>
+
+    <!-- Query Results -->
+    <div class="panel">
+      <div class="panel-title">Query Results</div>
+      <div class="results-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>User ID</th>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Last Order</th>
+              <th>Total Sales (yr)</th>
+            </tr>
+          </thead>
+          <tbody id="resultsBody">
+            <tr class="empty-row"><td colspan="5">No data loaded. Click Query DB to view customers.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Retrospection -->
+    <div class="retro">
+      <div class="retro-title">📝 Retrospection</div>
+
+      <div class="retro-q">What use cases can you see for using IndexedDB in your frontend apps?</div>
+      <div class="retro-a">
+        Offline-first apps (cached content, drafts), large datasets that exceed localStorage limits,
+        shopping cart persistence, user preferences synced across tabs, form draft auto-save,
+        and temporary staging areas for data fetched from an API before processing.
+      </div>
+
+      <div class="retro-q">What advantages and disadvantages does IndexedDB have over file or localStorage?</div>
+      <div class="retro-a">
+        <strong>Advantages:</strong> Supports structured data (objects, arrays), much larger storage quotas,
+        transaction support, indexes for fast queries, and async API that won't block the main thread.<br>
+        <strong>Disadvantages:</strong> More complex API than localStorage, no SQL-like query language,
+        not shareable across devices, and data is lost if the user clears browser storage.
+      </div>
+
+      <div class="retro-q">What criteria might you use to determine if IndexedDB is right for your app?</div>
+      <div class="retro-a">
+        IndexedDB is a good fit when data is structured and relational, exceeds ~5MB, needs to persist
+        across sessions without a server, or when offline support is required. It's less suitable for
+        simple key-value flags (use localStorage), server-synced data that needs security, or apps that
+        must support very old browsers. The right answer depends on data size, structure, offline needs,
+        and how often data changes.
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    /* ═══════════════════════════════════════════
+       Customer class (provided + extended)
+    ═══════════════════════════════════════════ */
+    class Customer {
+      constructor(dbName) {
+        this.dbName = dbName;
+        if (!window.indexedDB) {
+          window.alert("Your browser doesn't support IndexedDB.");
+        }
+      }
+
+      removeAllRows = () => {
+        const request = indexedDB.open(this.dbName, 1);
+        request.onerror = (e) => {
+          log('error', 'removeAllRows - DB error: ' + e.target.error.message);
+        };
+        request.onsuccess = (e) => {
+          log('info', 'Deleting all customers…');
+          const db  = e.target.result;
+          const txn = db.transaction('customers', 'readwrite');
+          txn.onerror = (e) => log('error', 'removeAllRows txn error: ' + e.target.error.message);
+          txn.oncomplete = () => {
+            log('success', 'All rows removed successfully.');
+            notify('✅ Database cleared.', 'success');
+            setButtonState('cleared');
+          };
+          const store = txn.objectStore('customers');
+          const keysReq = store.getAllKeys();
+          keysReq.onsuccess = (e) => {
+            e.target.result.forEach(key => store.delete(key));
+          };
+        };
+      }
+
+      initialLoad = (customerData) => {
+        const request = indexedDB.open(this.dbName, 1);
+        request.onerror = (e) => {
+          log('error', 'initialLoad - DB error: ' + e.target.error.message);
+        };
+        request.onupgradeneeded = (e) => {
+          log('info', 'Creating object store…');
+          const db    = e.target.result;
+          const store = db.createObjectStore('customers', { keyPath: 'userid' });
+          store.onerror = (e) => log('error', 'objectStore error: ' + e.target.error.message);
+          store.createIndex('name',  'name',  { unique: false });
+          store.createIndex('email', 'email', { unique: true });
+          customerData.forEach(c => store.put(c));
+          log('success', `${customerData.length} customers written to DB.`);
+          db.close();
+        };
+        request.onsuccess = (e) => {
+          // DB already exists — insert via txn
+          const db  = e.target.result;
+          if (!db.objectStoreNames.contains('customers')) { db.close(); return; }
+          const txn = db.transaction('customers', 'readwrite');
+          txn.oncomplete = () => {
+            log('success', 'Customers loaded via transaction.');
+            notify('✅ Database loaded with ' + customerData.length + ' customers.', 'success');
+            setButtonState('loaded');
+            db.close();
+          };
+          txn.onerror = (e) => log('error', 'Load txn error: ' + e.target.error.message);
+          const store = txn.objectStore('customers');
+          customerData.forEach(c => store.put(c));
+        };
+      }
+
+      queryAllRows = (callback) => {
+        const request = indexedDB.open(this.dbName, 1);
+        request.onerror = (e) => {
+          log('error', 'queryAllRows - DB error: ' + e.target.error.message);
+          callback([]);
+        };
+        request.onsuccess = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains('customers')) {
+            log('warn', 'No customers store found. Load DB first.');
+            callback([]);
+            db.close();
+            return;
+          }
+          const txn   = db.transaction('customers', 'readonly');
+          const store = txn.objectStore('customers');
+          const all   = store.getAll();
+          all.onsuccess = (e) => {
+            callback(e.target.result);
+            db.close();
+          };
+          all.onerror = (e) => {
+            log('error', 'getAll error: ' + e.target.error.message);
+            callback([]);
+          };
+        };
+      }
+    }
+
+    /* ═══════════════════════════════════════════
+       Constants & state
+    ═══════════════════════════════════════════ */
+    const DBNAME = 'customer_db';
+
+    const customerData = [
+      { userid: '444', name: 'Bill',  email: 'bill@company.com',  lastOrder: '2025-05-10', totalSales: 4820.50  },
+      { userid: '555', name: 'Donna', email: 'donna@home.org',    lastOrder: '2025-06-01', totalSales: 12340.00 },
+      { userid: '101', name: 'Alice', email: 'alice@startup.io',  lastOrder: '2025-04-22', totalSales: 7650.75  },
+      { userid: '202', name: 'Bob',   email: 'bob@enterprise.co', lastOrder: '2025-03-15', totalSales: 22100.00 },
+      { userid: '303', name: 'Carol', email: 'carol@agency.net',  lastOrder: '2025-05-30', totalSales: 3310.25  },
+    ];
+
+    /* ═══════════════════════════════════════════
+       UI helpers
+    ═══════════════════════════════════════════ */
+    function notify(msg, type = 'info') {
+      const colors = {
+        info:    '#38bdf8',
+        success: '#22c55e',
+        warn:    '#f59e0b',
+        error:   '#ef4444',
+      };
+      const dot  = document.getElementById('notifDot');
+      const text = document.getElementById('notifText');
+      dot.style.background  = colors[type] || colors.info;
+      text.style.color      = colors[type] || colors.info;
+      text.textContent      = msg;
+      log(type, msg);
+    }
+
+    function log(type, msg) {
+      const box  = document.getElementById('logBox');
+      const line = document.createElement('div');
+      line.className   = 'log-line ' + type;
+      const ts = new Date().toLocaleTimeString();
+      line.textContent = `[${ts}] ${msg}`;
+      box.appendChild(line);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function setButtonState(state) {
+      const load  = document.getElementById('btnLoad');
+      const query = document.getElementById('btnQuery');
+      const clear = document.getElementById('btnClear');
+
+      switch(state) {
+        case 'initial':
+          load.disabled  = false;
+          query.disabled = false;
+          clear.disabled = true;
+          break;
+        case 'loaded':
+          load.disabled  = true;
+          query.disabled = false;
+          clear.disabled = false;
+          break;
+        case 'queried':
+          load.disabled  = true;
+          query.disabled = false;
+          clear.disabled = false;
+          break;
+        case 'cleared':
+          load.disabled  = false;
+          query.disabled = false;
+          clear.disabled = true;
+          break;
+      }
+    }
+
+    function renderResults(rows) {
+      const tbody = document.getElementById('resultsBody');
+      tbody.innerHTML = '';
+      if (!rows || rows.length === 0) {
+        tbody.innerHTML = '<tr class="empty-row"><td colspan="5">No customers found in the database.</td></tr>';
+        return;
+      }
+      rows.forEach(r => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${r.userid}</td>
+          <td>${r.name}</td>
+          <td>${r.email}</td>
+          <td>${r.lastOrder || '—'}</td>
+          <td>$${(r.totalSales || 0).toLocaleString('en-US', {minimumFractionDigits:2})}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    /* ═══════════════════════════════════════════
+       Event handlers
+    ═══════════════════════════════════════════ */
+    const clearDB = () => {
+      notify('⏳ Clearing database…', 'warn');
+      log('warn', 'clearDB called.');
+      let c = new Customer(DBNAME);
+      c.removeAllRows();
+      renderResults([]);
+    };
+
+    const loadDB = () => {
+      notify('⏳ Loading database…', 'info');
+      log('info', 'loadDB called.');
+      let c = new Customer(DBNAME);
+      c.initialLoad(customerData);
+    };
+
+    const queryDB = () => {
+      notify('⏳ Querying database…', 'info');
+      log('query', 'queryDB called — fetching all rows…');
+      let c = new Customer(DBNAME);
+      c.queryAllRows((rows) => {
+        if (rows.length === 0) {
+          notify('ℹ No customers found. Load DB first.', 'warn');
+          log('warn', 'Query returned 0 rows.');
+        } else {
+          notify(`✅ Query complete — ${rows.length} customer(s) found.`, 'success');
+          log('success', `Query returned ${rows.length} row(s).`);
+          setButtonState('queried');
+        }
+        renderResults(rows);
+      });
+    };
+
+    /* button wrappers */
+    function handleLoad()  { loadDB();  }
+    function handleQuery() { queryDB(); }
+    function handleClear() { clearDB(); }
+
+    /* ═══════════════════════════════════════════
+       Init
+    ═══════════════════════════════════════════ */
+    setButtonState('initial');
+    log('info', 'App initialized. IndexedDB ready.');
+  </script>
+</body>
+</html>
